@@ -327,6 +327,216 @@ const deleteDeliveryPartner = async (req, res, next) => {
   }
 };
 
+const rejectVendor = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const vendor = await db.get('SELECT * FROM Vendors WHERE id = ?', [id]);
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    }
+    await db.run("UPDATE Vendors SET status = 'rejected' WHERE id = ?", [id]);
+    return res.status(200).json({
+      success: true,
+      message: `Vendor '${vendor.vendor_name}' registration application rejected successfully.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCategories = async (req, res, next) => {
+  try {
+    const categories = await db.all('SELECT * FROM Categories ORDER BY name ASC');
+    return res.status(200).json({ success: true, data: categories });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createCategory = async (req, res, next) => {
+  try {
+    const { name, description } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Category name is required.' });
+    }
+    const existing = await db.get('SELECT id FROM Categories WHERE name = ?', [name]);
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Category name already exists.' });
+    }
+    const result = await db.run('INSERT INTO Categories (name, description) VALUES (?, ?)', [name, description || '']);
+    return res.status(201).json({ success: true, message: 'Category created successfully.', id: result.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await db.run('DELETE FROM Categories WHERE id = ?', [id]);
+    return res.status(200).json({ success: true, message: 'Category deleted successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateVendorCommission = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { commission_rate } = req.body;
+    if (commission_rate === undefined || isNaN(commission_rate) || commission_rate < 0 || commission_rate > 100) {
+      return res.status(400).json({ success: false, message: 'Invalid commission rate.' });
+    }
+    await db.run('UPDATE Stores SET commission_rate = ? WHERE vendor_id = ?', [commission_rate, id]);
+    await db.run('UPDATE Vendors SET commission_rate = ? WHERE id = ?', [commission_rate, id]);
+    return res.status(200).json({ success: true, message: 'Commission rate updated successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPayoutRequests = async (req, res, next) => {
+  try {
+    const payouts = await db.all(
+      `SELECT pr.*, v.vendor_name, v.email as vendor_email 
+       FROM PayoutRequests pr 
+       JOIN Vendors v ON pr.vendor_id = v.id 
+       ORDER BY pr.created_at DESC`
+    );
+    return res.status(200).json({ success: true, data: payouts });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const approvePayout = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const request = await db.get('SELECT * FROM PayoutRequests WHERE id = ?', [id]);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Payout request not found.' });
+    }
+    if (request.status !== 'Pending') {
+      return res.status(400).json({ success: false, message: 'Payout request is already resolved.' });
+    }
+    await db.run("UPDATE PayoutRequests SET status = 'Approved' WHERE id = ?", [id]);
+    return res.status(200).json({ success: true, message: 'Payout request approved successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectPayout = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const request = await db.get('SELECT * FROM PayoutRequests WHERE id = ?', [id]);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Payout request not found.' });
+    }
+    if (request.status !== 'Pending') {
+      return res.status(400).json({ success: false, message: 'Payout request is already resolved.' });
+    }
+    await db.run("UPDATE PayoutRequests SET status = 'Rejected' WHERE id = ?", [id]);
+    // Refund the amount to the vendor's wallet balance
+    await db.run('UPDATE Vendors SET wallet_balance = wallet_balance + ? WHERE id = ?', [request.amount, request.vendor_id]);
+    return res.status(200).json({ success: true, message: 'Payout request rejected and funds refunded to vendor wallet.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getReportsAndAnalytics = async (req, res, next) => {
+  try {
+    const totalGrossSales = await db.get(
+      "SELECT COALESCE(SUM(total_price), 0) as total FROM Orders WHERE status != 'Cancelled'"
+    );
+
+    const itemsList = await db.all(
+      `SELECT oi.price, oi.quantity, p.vendor_id, o.status
+       FROM Order_Items oi
+       JOIN Products p ON oi.product_id = p.id
+       JOIN Orders o ON oi.order_id = o.id
+       WHERE o.status != 'Cancelled'`
+    );
+
+    let totalPlatformCommission = 0;
+    for (const item of itemsList) {
+      const store = await db.get('SELECT commission_rate FROM Stores WHERE vendor_id = ?', [item.vendor_id]);
+      const rate = store ? parseFloat(store.commission_rate) : 10.00;
+      totalPlatformCommission += (item.price * item.quantity) * (rate / 100);
+    }
+    totalPlatformCommission = parseFloat(totalPlatformCommission.toFixed(2));
+
+    const topSellers = await db.all(
+      `SELECT p.id, p.name, p.category, SUM(oi.quantity) as total_qty_sold, SUM(oi.price * oi.quantity) as total_revenue
+       FROM Order_Items oi
+       JOIN Products p ON oi.product_id = p.id
+       JOIN Orders o ON oi.order_id = o.id
+       WHERE o.status != 'Cancelled'
+       GROUP BY p.id
+       ORDER BY total_qty_sold DESC
+       LIMIT 10`
+    );
+
+    const vendorsList = await db.all('SELECT id, vendor_name FROM Vendors');
+    const vendorPerformance = [];
+    for (const v of vendorsList) {
+      const salesData = await db.all(
+        `SELECT oi.price, oi.quantity
+         FROM Order_Items oi
+         JOIN Products p ON oi.product_id = p.id
+         JOIN Orders o ON oi.order_id = o.id
+         WHERE p.vendor_id = ? AND o.status != 'Cancelled'`,
+        [v.id]
+      );
+
+      let gross = 0;
+      let comm = 0;
+      const store = await db.get('SELECT commission_rate FROM Stores WHERE vendor_id = ?', [v.id]);
+      const rate = store ? parseFloat(store.commission_rate) : 10.00;
+
+      salesData.forEach(item => {
+        const itemGross = item.price * item.quantity;
+        gross += itemGross;
+        comm += itemGross * (rate / 100);
+      });
+
+      vendorPerformance.push({
+        vendor_id: v.id,
+        vendor_name: v.vendor_name,
+        total_items_sold: salesData.reduce((acc, curr) => acc + curr.quantity, 0),
+        gross_revenue: parseFloat(gross.toFixed(2)),
+        commission_earned: parseFloat(comm.toFixed(2)),
+        net_earnings: parseFloat((gross - comm).toFixed(2))
+      });
+    }
+
+    const statusCounts = await db.all(
+      'SELECT status, COUNT(*) as count FROM Orders GROUP BY status'
+    );
+    const orderStatuses = {};
+    statusCounts.forEach(s => {
+      orderStatuses[s.status] = s.count;
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        metrics: {
+          gross_sales: totalGrossSales ? totalGrossSales.total : 0.0,
+          platform_commission: totalPlatformCommission,
+          net_payouts: parseFloat(((totalGrossSales ? totalGrossSales.total : 0.0) - totalPlatformCommission).toFixed(2))
+        },
+        top_selling_products: topSellers,
+        vendor_performance: vendorPerformance,
+        order_status_distribution: orderStatuses
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAdminStats,
   getUsers,
@@ -334,6 +544,7 @@ module.exports = {
   getVendors,
   approveVendor,
   blockVendor,
+  rejectVendor,
   getAllOrders,
   createCoupon,
   getCoupons,
@@ -345,4 +556,12 @@ module.exports = {
   getDeliveryPartners,
   addDeliveryPartner,
   deleteDeliveryPartner,
+  getCategories,
+  createCategory,
+  deleteCategory,
+  updateVendorCommission,
+  getPayoutRequests,
+  approvePayout,
+  rejectPayout,
+  getReportsAndAnalytics,
 };

@@ -190,6 +190,13 @@ const loginVendor = async (req, res, next) => {
       });
     }
 
+    if (vendor.status === 'rejected') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your vendor account application was rejected by the admin.',
+      });
+    }
+
     if (vendor.status === 'blocked') {
       return res.status(403).json({
         success: false,

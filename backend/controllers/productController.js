@@ -529,6 +529,16 @@ const getVendorPublicStore = async (req, res, next) => {
   }
 };
 
+const getCategories = async (req, res, next) => {
+  try {
+    const categories = await db.all('SELECT name FROM Categories ORDER BY name ASC');
+    const names = categories.map(c => c.name);
+    return res.status(200).json({ success: true, data: names });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -543,4 +553,5 @@ module.exports = {
   logProductView,
   getRecentlyViewed,
   getVendorPublicStore,
+  getCategories,
 };

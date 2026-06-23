@@ -17,6 +17,8 @@ router.delete('/users/:id', adminController.deleteUser);
 router.get('/vendors', adminController.getVendors);
 router.put('/vendors/:id/approve', adminController.approveVendor);
 router.put('/vendors/:id/block', adminController.blockVendor);
+router.put('/vendors/:id/reject', adminController.rejectVendor);
+router.put('/vendors/:id/commission', adminController.updateVendorCommission);
 
 // Order Management (Global)
 router.get('/orders', adminController.getAllOrders);
@@ -38,5 +40,18 @@ router.put('/settings', adminController.updateSystemSettings);
 router.get('/delivery-partners', adminController.getDeliveryPartners);
 router.post('/delivery-partners', adminController.addDeliveryPartner);
 router.delete('/delivery-partners/:id', adminController.deleteDeliveryPartner);
+
+// Category Management
+router.get('/categories', adminController.getCategories);
+router.post('/categories', adminController.createCategory);
+router.delete('/categories/:id', adminController.deleteCategory);
+
+// Payout Management
+router.get('/payouts', adminController.getPayoutRequests);
+router.put('/payouts/:id/approve', adminController.approvePayout);
+router.put('/payouts/:id/reject', adminController.rejectPayout);
+
+// Reports & Analytics
+router.get('/reports/analytics', adminController.getReportsAndAnalytics);
 
 module.exports = router;

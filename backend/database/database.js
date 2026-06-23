@@ -285,6 +285,28 @@ const initDatabase = async () => {
       )
     `);
 
+    // Create Categories table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS Categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create PayoutRequests table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS PayoutRequests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        status VARCHAR(50) DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (vendor_id) REFERENCES Vendors(id) ON DELETE CASCADE
+      )
+    `);
+
     console.log('Database tables initialized successfully. Verifying columns...');
 
     // Add new columns if missing
@@ -317,6 +339,9 @@ const initDatabase = async () => {
     
     // Seed some basic coupons
     await seedCoupons();
+
+    // Seed categories
+    await seedCategories();
 
     // Seed System settings
     await seedSystemSettings();
@@ -400,6 +425,21 @@ const seedCoupons = async () => {
     }
   } catch (err) {
     console.error('Error seeding coupons:', err);
+  }
+};
+
+const seedCategories = async () => {
+  try {
+    const categoryCount = await dbGet('SELECT COUNT(*) as count FROM Categories');
+    if (categoryCount.count === 0) {
+      const defaults = ['Electronics', 'Fashion', 'Home & Kitchen', 'Clothing', 'Accessories'];
+      for (const cat of defaults) {
+        await dbRun('INSERT INTO Categories (name, description) VALUES (?, ?)', [cat, `${cat} category description.`]);
+      }
+      console.log('Default categories seeded successfully.');
+    }
+  } catch (err) {
+    console.error('Error seeding categories:', err);
   }
 };
 

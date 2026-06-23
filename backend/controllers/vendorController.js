@@ -235,7 +235,8 @@ const requestPayout = async (req, res, next) => {
     }
 
     await db.run('UPDATE Vendors SET wallet_balance = wallet_balance - ? WHERE id = ?', [val, vendorId]);
-    return res.status(200).json({ success: true, message: `Payout of ₹${val.toFixed(2)} processed successfully.` });
+    await db.run('INSERT INTO PayoutRequests (vendor_id, amount, status) VALUES (?, ?, ?)', [vendorId, val, 'Pending']);
+    return res.status(200).json({ success: true, message: `Payout request of ₹${val.toFixed(2)} submitted for admin approval.` });
   } catch (error) {
     next(error);
   }
