@@ -76,7 +76,7 @@ const deleteUser = async (req, res, next) => {
 const getVendors = async (req, res, next) => {
   try {
     const vendors = await db.all(
-      'SELECT id, vendor_name, email, status, created_at FROM Vendors ORDER BY created_at DESC'
+      'SELECT id, vendor_name, email, status, commission_rate, created_at FROM Vendors ORDER BY created_at DESC'
     );
     return res.status(200).json({
       success: true,

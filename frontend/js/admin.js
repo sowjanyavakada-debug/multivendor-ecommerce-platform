@@ -26,6 +26,10 @@ async function refreshDashboard() {
   await loadDeliveryPartners();
   await loadUsersRegistry();
   await loadChatThreads();
+  await loadCategories();
+  await loadOrders();
+  await loadPayoutRequests();
+  await loadReportsAndAnalytics();
 }
 
 async function loadStats() {
@@ -51,7 +55,7 @@ async function loadVendors() {
     renderVendors(res.data || []);
   } catch (err) {
     document.getElementById('admin-vendors-container').innerHTML = `
-      <tr><td colspan="6" class="text-center text-danger">Failed to load vendor applications list.</td></tr>
+      <tr><td colspan="7" class="text-center text-danger">Failed to load vendor applications list.</td></tr>
     `;
   }
 }
@@ -59,7 +63,7 @@ async function loadVendors() {
 function renderVendors(vendors) {
   const container = document.getElementById('admin-vendors-container');
   if (vendors.length === 0) {
-    container.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No vendor accounts registered.</td></tr>`;
+    container.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No vendor accounts registered.</td></tr>`;
     return;
   }
 
@@ -68,21 +72,26 @@ function renderVendors(vendors) {
     let badgeClass = 'custom-badge pending';
     if (v.status === 'approved') badgeClass = 'custom-badge approved';
     if (v.status === 'blocked') badgeClass = 'custom-badge blocked';
+    if (v.status === 'rejected') badgeClass = 'custom-badge blocked bg-danger-subtle text-danger';
 
     const isApproved = v.status === 'approved';
     const isBlocked = v.status === 'blocked';
+    const isRejected = v.status === 'rejected';
 
     return `
       <tr>
         <td class="fw-bold">#${v.id}</td>
         <td class="fw-semibold text-dark">${v.vendor_name}</td>
         <td>${v.email}</td>
+        <td class="fw-semibold">${parseFloat(v.commission_rate || 10).toFixed(2)}%</td>
         <td><span class="${badgeClass}">${v.status}</span></td>
         <td>${formattedDate}</td>
         <td>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-success px-2" onclick="approveVendor(${v.id})" ${isApproved ? 'disabled' : ''}>Approve</button>
-            <button class="btn btn-sm btn-danger px-2" onclick="blockVendor(${v.id})" ${isBlocked ? 'disabled' : ''}>Block</button>
+          <div class="d-flex gap-1 flex-wrap">
+            <button class="btn btn-xs btn-success py-1 px-2 fs-6" onclick="approveVendor(${v.id})" ${isApproved ? 'disabled' : ''} style="font-size: 0.75rem;">Approve</button>
+            <button class="btn btn-xs btn-danger py-1 px-2 fs-6" onclick="rejectVendor(${v.id})" ${isRejected ? 'disabled' : ''} style="font-size: 0.75rem;">Reject</button>
+            <button class="btn btn-xs btn-secondary py-1 px-2 fs-6" onclick="blockVendor(${v.id})" ${isBlocked ? 'disabled' : ''} style="font-size: 0.75rem;">Block</button>
+            <button class="btn btn-xs btn-outline-primary py-1 px-2 fs-6" onclick="updateCommission(${v.id}, ${v.commission_rate || 10.00})" style="font-size: 0.75rem;"><i class="bi bi-percent"></i></button>
           </div>
         </td>
       </tr>
@@ -100,10 +109,38 @@ window.approveVendor = async (id) => {
   }
 };
 
+window.rejectVendor = async (id) => {
+  if (!confirm('Are you sure you want to reject this vendor application?')) return;
+  try {
+    await API.put(`/admin/vendors/${id}/reject`);
+    API.showToast('Vendor application rejected.');
+    await refreshDashboard();
+  } catch (err) {
+    API.showToast(err.message, true);
+  }
+};
+
 window.blockVendor = async (id) => {
   try {
     await API.put(`/admin/vendors/${id}/block`);
     API.showToast('Vendor blocked successfully.');
+    await refreshDashboard();
+  } catch (err) {
+    API.showToast(err.message, true);
+  }
+};
+
+window.updateCommission = async (id, currentRate) => {
+  const newRateStr = prompt(`Set custom commission rate for this vendor store (Current: ${currentRate}%):`, currentRate);
+  if (newRateStr === null) return;
+  const newRate = parseFloat(newRateStr);
+  if (isNaN(newRate) || newRate < 0 || newRate > 100) {
+    API.showToast('Please enter a valid rate between 0 and 100.', true);
+    return;
+  }
+  try {
+    await API.put(`/admin/vendors/${id}/commission`, { commission_rate: newRate });
+    API.showToast('Commission rate updated successfully.');
     await refreshDashboard();
   } catch (err) {
     API.showToast(err.message, true);
@@ -518,6 +555,25 @@ function setupFormBindings() {
     });
   }
 
+  // Category Form
+  const categoryForm = document.getElementById('create-category-form');
+  if (categoryForm) {
+    categoryForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('categoryName').value.trim();
+      const description = document.getElementById('categoryDesc').value.trim();
+
+      try {
+        await API.post('/admin/categories', { name, description });
+        API.showToast('Category created successfully.');
+        categoryForm.reset();
+        await loadCategories();
+      } catch (err) {
+        API.showToast(err.message, true);
+      }
+    });
+  }
+
   // Chat send form
   const chatForm = document.getElementById('chat-send-form');
   if (chatForm) {
@@ -543,3 +599,198 @@ function setupFormBindings() {
     });
   }
 }
+
+// Categories
+async function loadCategories() {
+  const container = document.getElementById('admin-categories-container');
+  if (!container) return;
+  try {
+    const res = await API.get('/admin/categories');
+    const categories = res.data || [];
+    if (categories.length === 0) {
+      container.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No categories found.</td></tr>`;
+      return;
+    }
+    container.innerHTML = categories.map(c => `
+      <tr>
+        <td class="fw-bold">#${c.id}</td>
+        <td class="fw-semibold text-dark">${c.name}</td>
+        <td>${c.description || '<span class="text-muted">No description</span>'}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger px-2" onclick="deleteCategory(${c.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Failed to load categories.</td></tr>`;
+  }
+}
+
+window.deleteCategory = async (id) => {
+  if (!confirm('Are you sure you want to delete this category?')) return;
+  try {
+    await API.delete(`/admin/categories/${id}`);
+    API.showToast('Category deleted successfully.');
+    await loadCategories();
+  } catch (err) {
+    API.showToast(err.message, true);
+  }
+};
+
+// Orders
+async function loadOrders() {
+  const container = document.getElementById('admin-orders-container');
+  if (!container) return;
+  try {
+    const res = await API.get('/admin/orders');
+    const orders = res.data || [];
+    if (orders.length === 0) {
+      container.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No customer orders found.</td></tr>`;
+      return;
+    }
+    container.innerHTML = orders.map(o => {
+      const date = new Date(o.order_date).toLocaleDateString();
+      let statusClass = 'pending';
+      if (o.status === 'Completed' || o.status === 'Delivered') statusClass = 'approved';
+      if (o.status === 'Cancelled' || o.status === 'Returned') statusClass = 'blocked';
+      if (o.status === 'Processing' || o.status === 'Shipped') statusClass = 'pending';
+
+      return `
+        <tr>
+          <td class="fw-bold">#${o.id}</td>
+          <td>${o.customer_name || `User #${o.user_id}`}</td>
+          <td class="fw-bold text-dark">₹${parseFloat(o.total_price).toFixed(2)}</td>
+          <td class="text-danger fw-semibold">₹${parseFloat(o.discount_amount || 0).toFixed(2)}</td>
+          <td>${o.coupon_code ? `<span class="badge bg-light text-primary border">${o.coupon_code}</span>` : '<span class="text-muted">-</span>'}</td>
+          <td><span class="custom-badge ${statusClass}">${o.status}</span></td>
+          <td>${date}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load orders registry.</td></tr>`;
+  }
+}
+
+// Payouts
+async function loadPayoutRequests() {
+  const container = document.getElementById('admin-payouts-container');
+  if (!container) return;
+  try {
+    const res = await API.get('/admin/payouts');
+    const payouts = res.data || [];
+    if (payouts.length === 0) {
+      container.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No payout requests found.</td></tr>`;
+      return;
+    }
+    container.innerHTML = payouts.map(p => {
+      const date = new Date(p.created_at).toLocaleDateString();
+      let statusClass = 'pending';
+      if (p.status === 'Approved') statusClass = 'approved';
+      if (p.status === 'Rejected') statusClass = 'blocked';
+
+      const isPending = p.status === 'Pending';
+      const actions = isPending
+        ? `<div class="d-flex gap-1">
+             <button class="btn btn-sm btn-success px-2 py-1" onclick="approvePayout(${p.id})">Approve</button>
+             <button class="btn btn-sm btn-danger px-2 py-1" onclick="rejectPayout(${p.id})">Reject</button>
+           </div>`
+        : `<span class="text-muted small">Resolved</span>`;
+
+      return `
+        <tr>
+          <td class="fw-bold">#${p.id}</td>
+          <td class="fw-semibold text-dark">${p.vendor_name}</td>
+          <td>${p.vendor_email}</td>
+          <td class="fw-bold text-success">₹${parseFloat(p.amount).toFixed(2)}</td>
+          <td><span class="custom-badge ${statusClass}">${p.status}</span></td>
+          <td>${date}</td>
+          <td>${actions}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load payout queue.</td></tr>`;
+  }
+}
+
+window.approvePayout = async (id) => {
+  if (!confirm('Are you sure you want to approve this payout request?')) return;
+  try {
+    await API.put(`/admin/payouts/${id}/approve`);
+    API.showToast('Payout request approved.');
+    await loadPayoutRequests();
+    await loadReportsAndAnalytics();
+  } catch (err) {
+    API.showToast(err.message, true);
+  }
+};
+
+window.rejectPayout = async (id) => {
+  if (!confirm('Are you sure you want to reject this payout request and refund the balance?')) return;
+  try {
+    await API.put(`/admin/payouts/${id}/reject`);
+    API.showToast('Payout request rejected. Wallet balance refunded to vendor.');
+    await loadPayoutRequests();
+    await loadReportsAndAnalytics();
+  } catch (err) {
+    API.showToast(err.message, true);
+  }
+};
+
+// Reports and Analytics
+async function loadReportsAndAnalytics() {
+  const grossSalesEl = document.getElementById('analytics-gross-sales');
+  const commissionEl = document.getElementById('analytics-commission');
+  const netPayoutsEl = document.getElementById('analytics-net-payouts');
+  const topSellersContainer = document.getElementById('analytics-top-sellers-container');
+  const vendorPerformanceContainer = document.getElementById('analytics-vendor-performance-container');
+
+  try {
+    const res = await API.get('/admin/reports/analytics');
+    const { metrics, top_selling_products, vendor_performance } = res.data;
+
+    if (grossSalesEl) grossSalesEl.innerText = `₹${parseFloat(metrics.gross_sales).toFixed(2)}`;
+    if (commissionEl) commissionEl.innerText = `₹${parseFloat(metrics.platform_commission).toFixed(2)}`;
+    if (netPayoutsEl) netPayoutsEl.innerText = `₹${parseFloat(metrics.net_payouts).toFixed(2)}`;
+
+    if (topSellersContainer) {
+      if (top_selling_products.length === 0) {
+        topSellersContainer.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No sales registry recorded.</td></tr>`;
+      } else {
+        topSellersContainer.innerHTML = top_selling_products.map(p => `
+          <tr>
+            <td>
+              <span class="fw-semibold text-dark">${p.name}</span>
+              <span class="text-muted small d-block">ID: #${p.id}</span>
+            </td>
+            <td><span class="badge bg-light text-dark border">${p.category}</span></td>
+            <td class="fw-bold">${p.total_qty_sold} units</td>
+            <td class="fw-bold text-success">₹${parseFloat(p.total_revenue).toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (vendorPerformanceContainer) {
+      if (vendor_performance.length === 0) {
+        vendorPerformanceContainer.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No vendor registrations.</td></tr>`;
+      } else {
+        vendorPerformanceContainer.innerHTML = vendor_performance.map(v => `
+          <tr>
+            <td>
+              <span class="fw-semibold text-dark">${v.vendor_name}</span>
+              <span class="text-muted small d-block">ID: #${v.vendor_id}</span>
+            </td>
+            <td class="fw-bold">${v.total_items_sold} sold</td>
+            <td class="fw-semibold text-dark">₹${parseFloat(v.gross_revenue).toFixed(2)}</td>
+            <td class="fw-bold text-danger">₹${parseFloat(v.commission_earned).toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load reports and analytics:', err);
+  }
+}
+
