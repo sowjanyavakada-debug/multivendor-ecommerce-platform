@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopHub - Login & Register</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+  <!-- Shared Navbar Wrapper -->
+  <nav class="navbar navbar-expand-lg navbar-dark"></nav>
+
+  <!-- Main Content Area -->
+  <div class="container my-5 flex-grow-1">
+    <div class="auth-container premium-card p-4 mx-auto animate-fade-up">
+      
+      <!-- Tab selectors -->
+      <ul class="nav nav-tabs auth-nav-tabs w-100" id="authTabs" role="tablist">
+        <li class="nav-item flex-grow-1" role="presentation">
+          <button class="nav-link auth-nav-link w-100 active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-panel" type="button" role="tab">Login</button>
+        </li>
+        <li class="nav-item flex-grow-1" role="presentation">
+          <button class="nav-link auth-nav-link w-100" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-panel" type="button" role="tab">Register</button>
+        </li>
+      </ul>
+
+      <!-- Tab Panels -->
+      <div class="tab-content" id="authTabsContent">
+        
+        <!-- 1. LOGIN PANEL -->
+        <div class="tab-pane fade show active" id="login-panel" role="tabpanel">
+          <h3 class="fw-bold mb-3">Login to ShopHub</h3>
+          <p class="text-muted mb-4">Access your account to start shopping or managing products.</p>
+          
+          <form id="login-form">
+            <!-- Role selection -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">I am logging in as:</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="loginRole" id="loginRoleUser" value="user" checked>
+                  <label class="form-check-label" for="loginRoleUser">Customer</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="loginRole" id="loginRoleVendor" value="vendor">
+                  <label class="form-check-label" for="loginRoleVendor">Vendor</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="loginRole" id="loginRoleAdmin" value="admin">
+                  <label class="form-check-label" for="loginRoleAdmin">Admin</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="loginEmail" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" required>
+            </div>
+            
+            <div class="mb-2">
+              <label for="loginPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="loginPassword" placeholder="••••••••" required>
+            </div>
+
+            <!-- Forgot Password Link -->
+            <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" class="d-block text-end small mb-4 text-decoration-none text-primary fw-semibold">Forgot Password?</a>
+
+            <button type="submit" class="btn btn-premium-primary w-100 py-2 fw-semibold">Sign In</button>
+
+            <!-- Social Login Options -->
+            <hr class="my-4">
+            <div class="text-center text-muted small mb-3">Or Login With</div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-danger w-100 btn-sm" onclick="handleSocialLogin('Google')">
+                <i class="bi bi-google text-danger"></i> Google
+              </button>
+              <button type="button" class="btn btn-outline-primary w-100 btn-sm" onclick="handleSocialLogin('Facebook')">
+                <i class="bi bi-facebook text-primary"></i> Facebook
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2. REGISTER PANEL -->
+        <div class="tab-pane fade" id="register-panel" role="tabpanel">
+          <h3 class="fw-bold mb-3">Create Account</h3>
+          <p class="text-muted mb-4">Register as a customer or open a vendor store to start selling.</p>
+          
+          <form id="register-form">
+            <!-- Role selection -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">I want to register as a:</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="registerRole" id="registerRoleUser" value="user" checked>
+                  <label class="form-check-label" for="registerRoleUser">Customer</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="registerRole" id="registerRoleVendor" value="vendor">
+                  <label class="form-check-label" for="registerRoleVendor">Vendor</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="registerName" class="form-label" id="nameLabel">Full Name</label>
+              <input type="text" class="form-control" id="registerName" placeholder="John Doe" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="registerEmail" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="registerEmail" placeholder="john@example.com" required>
+            </div>
+            
+            <div class="mb-4">
+              <label for="registerPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="registerPassword" placeholder="Minimum 6 characters" required>
+            </div>
+
+            <button type="submit" class="btn btn-premium-primary w-100 py-2 fw-semibold">Register</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold">Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="forgot-password-form">
+            <div class="mb-3">
+              <label for="resetEmail" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="resetEmail" required placeholder="name@example.com">
+            </div>
+            <div class="mb-4">
+              <label for="resetNewPassword" class="form-label">New Password</label>
+              <input type="password" class="form-control" id="resetNewPassword" required placeholder="Minimum 6 characters">
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Reset Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Footer Wrapper -->
+  <footer></footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
