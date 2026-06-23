@@ -470,6 +470,34 @@
     </div>
   </div>
 
+  <!-- Shipping Details Modal -->
+  <div class="modal fade" id="shippingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold">Add Shipping Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="shipping-details-form">
+            <input type="hidden" id="shipping-order-id">
+            <div class="mb-3">
+              <label for="shippingCarrier" class="form-label fw-bold">Select Delivery Partner</label>
+              <select class="form-select" id="shippingCarrier" required>
+                <!-- Dynamically loaded -->
+              </select>
+            </div>
+            <div class="mb-4">
+              <label for="shippingTracking" class="form-label fw-bold">Tracking Number</label>
+              <input type="text" class="form-control" id="shippingTracking" placeholder="e.g. SH-98765432" required>
+            </div>
+            <button type="submit" class="btn btn-premium-primary w-100 py-2">Ship Order & Notify Customer</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Shared Footer Wrapper -->
   <footer></footer>
 

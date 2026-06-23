@@ -148,7 +148,7 @@ function renderVendorOrders(orders) {
         <td>
           <div class="d-flex align-items-center gap-2">
             <span class="${statusClass}">${ord.status}</span>
-            <select class="form-select form-select-sm" style="max-width: 130px;" ${disabled} onchange="updateOrderStatus(${ord.id}, this.value)">
+            <select class="form-select form-select-sm" style="max-width: 130px;" ${disabled} onchange="handleStatusChange(${ord.id}, this.value)">
               <option value="Pending" ${ord.status === 'Pending' ? 'selected' : ''}>Pending</option>
               <option value="Processing" ${ord.status === 'Processing' ? 'selected' : ''}>Processing</option>
               <option value="Shipped" ${ord.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
@@ -163,13 +163,32 @@ function renderVendorOrders(orders) {
   }).join('');
 }
 
-window.updateOrderStatus = async (orderId, newStatus) => {
-  try {
-    await API.put(`/orders/${orderId}/status`, { status: newStatus });
-    API.showToast(`Order status updated to ${newStatus}.`);
-    await refreshDashboard();
-  } catch (err) {
-    API.showToast(err.message, true);
+window.handleStatusChange = async (orderId, newStatus) => {
+  if (newStatus === 'Shipped') {
+    document.getElementById('shipping-order-id').value = orderId;
+    document.getElementById('shippingTracking').value = '';
+    
+    try {
+      const res = await API.get('/orders/delivery-partners');
+      const partners = res.data || [];
+      const carrierSelect = document.getElementById('shippingCarrier');
+      carrierSelect.innerHTML = partners.map(p => `<option value="${p.id}">${p.name} (${p.phone})</option>`).join('');
+      
+      const modal = new bootstrap.Modal(document.getElementById('shippingModal'));
+      modal.show();
+    } catch (err) {
+      API.showToast('Failed to load delivery partners', true);
+      await loadVendorOrders();
+    }
+  } else {
+    try {
+      await API.put(`/orders/${orderId}/status`, { status: newStatus });
+      API.showToast(`Order status updated to ${newStatus}.`);
+      await refreshDashboard();
+    } catch (err) {
+      API.showToast(err.message, true);
+      await loadVendorOrders();
+    }
   }
 };
 
@@ -529,6 +548,42 @@ function setupFormBindings() {
       } catch (err) {
         API.showToast(err.message, true);
       }
+    });
+  }
+
+  // Shipping details form submission
+  const shippingForm = document.getElementById('shipping-details-form');
+  if (shippingForm) {
+    shippingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const orderId = document.getElementById('shipping-order-id').value;
+      const delivery_partner_id = parseInt(document.getElementById('shippingCarrier').value);
+      const tracking_number = document.getElementById('shippingTracking').value.trim();
+
+      try {
+        await API.put(`/orders/${orderId}/status`, {
+          status: 'Shipped',
+          tracking_number,
+          delivery_partner_id
+        });
+        API.showToast('Order status updated to Shipped with tracking info.');
+
+        const modalEl = document.getElementById('shippingModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modal) modal.hide();
+        shippingForm.reset();
+        await refreshDashboard();
+      } catch (err) {
+        API.showToast(err.message, true);
+      }
+    });
+  }
+
+  // Reset order list on shipping modal close/dismiss to clean select visually
+  const shippingModalEl = document.getElementById('shippingModal');
+  if (shippingModalEl) {
+    shippingModalEl.addEventListener('hidden.bs.modal', async () => {
+      await loadVendorOrders();
     });
   }
 }
