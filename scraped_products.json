@@ -1,0 +1,32 @@
+[
+  {
+    "id": 2,
+    "name": "Scraped Keyboard",
+    "description": "A great mechanical keyboard.",
+    "price": 49.99,
+    "stock": 50,
+    "image_url": "http://example.com/keyboard.jpg",
+    "category": "Electronics",
+    "vendor_id": 1,
+    "is_featured": 0,
+    "product_link": "http://example.com/keyboard",
+    "created_at": "2026-06-24T13:34:46.000Z",
+    "status": "Approved",
+    "subcategory": "General"
+  },
+  {
+    "id": 3,
+    "name": "Scraped Mug",
+    "description": "Ceramic coffee mug.",
+    "price": 12.99,
+    "stock": 50,
+    "image_url": "http://example.com/mug.jpg",
+    "category": "Kitchenware",
+    "vendor_id": 1,
+    "is_featured": 0,
+    "product_link": "http://example.com/mug",
+    "created_at": "2026-06-24T13:34:46.000Z",
+    "status": "Approved",
+    "subcategory": "General"
+  }
+]
