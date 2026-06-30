@@ -248,13 +248,13 @@ function renderItemsTable(items, container) {
   }
 
   container.innerHTML = items.map(item => {
-    const imageUrl = item.image_url ? `http://localhost:5000/${item.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    const imageUrl = window.getProductImageUrl(item.image_url, item.product_name);
     const itemTotal = item.price * item.quantity;
     return `
       <tr>
         <td>
           <div class="d-flex align-items-center gap-3">
-            <img src="${imageUrl}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+            <img src="${imageUrl}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
             <div>
               <span class="fw-bold d-block text-dark">${item.product_name || 'Product Details'}</span>
               <small class="text-muted">${item.vendor_name || 'ShopHub Store'}</small>

@@ -113,6 +113,7 @@ const initDatabase = async () => {
         category VARCHAR(255) NOT NULL,
         vendor_id INT NOT NULL,
         is_featured INT DEFAULT 0 CHECK(is_featured IN (0, 1)),
+        product_link TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(vendor_id) REFERENCES Vendors(id) ON DELETE CASCADE
       )
@@ -321,6 +322,7 @@ const initDatabase = async () => {
 
     await addColumnIfNotExists('Products', 'status', "VARCHAR(50) DEFAULT 'Approved'");
     await addColumnIfNotExists('Products', 'subcategory', "VARCHAR(255) DEFAULT 'General'");
+    await addColumnIfNotExists('Products', 'product_link', 'TEXT DEFAULT NULL');
 
     await addColumnIfNotExists('Orders', 'shipping_method', "VARCHAR(50) DEFAULT 'Standard'");
     await addColumnIfNotExists('Orders', 'shipping_fee', 'DECIMAL(10,2) DEFAULT 10.00');

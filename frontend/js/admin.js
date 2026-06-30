@@ -202,7 +202,7 @@ async function loadProductsForModeration() {
     }
 
     container.innerHTML = products.map(p => {
-      const img = p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `http://localhost:5000/${p.image_url}`) : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+      const img = window.getProductImageUrl(p.image_url, p.name);
       let badgeClass = 'pending';
       if (p.status === 'Approved') badgeClass = 'approved';
       if (p.status === 'Rejected') badgeClass = 'blocked';
@@ -214,7 +214,7 @@ async function loadProductsForModeration() {
         <tr>
           <td>
             <div class="d-flex align-items-center gap-3">
-              <img src="${img}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+              <img src="${img}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
               <span class="fw-bold text-dark">${p.name}</span>
             </div>
           </td>

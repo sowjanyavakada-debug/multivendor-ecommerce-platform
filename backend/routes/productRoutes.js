@@ -11,6 +11,7 @@ router.get('/featured', productController.getFeaturedProducts);
 router.get('/trending', productController.getTrendingProducts);
 router.get('/bestsellers', productController.getBestSellers);
 router.get('/meta/categories', productController.getCategories);
+router.post('/scraped', productController.createScrapedProduct);
 router.get('/:id', productController.getProductById);
 router.get('/:id/related', productController.getRelatedProducts);
 router.get('/vendor/store/:vendorId', productController.getVendorPublicStore);

@@ -181,12 +181,12 @@ window.loadOrderDetails = async (orderId) => {
     const res = await API.get(`/orders/${orderId}`);
     const items = res.data.items || [];
     container.innerHTML = items.map(item => {
-      const img = item.image_url ? `http://localhost:5000/${item.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+      const img = window.getProductImageUrl(item.image_url, item.product_name);
       return `
         <tr>
           <td>
             <div class="d-flex align-items-center gap-3">
-              <img src="${img}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+              <img src="${img}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
               <div>
                 <span class="fw-bold d-block text-dark">${item.product_name || 'Product'}</span>
                 <small class="text-muted">ID: ${item.product_id}</small>
@@ -261,12 +261,12 @@ async function loadWishlist() {
     }
 
     container.innerHTML = items.map(item => {
-      const img = item.image_url ? `http://localhost:5000/${item.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+      const img = window.getProductImageUrl(item.image_url, item.name);
       return `
         <tr>
           <td>
             <div class="d-flex align-items-center gap-3">
-              <img src="${img}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+              <img src="${img}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
               <span class="fw-bold text-dark">${item.name}</span>
             </div>
           </td>

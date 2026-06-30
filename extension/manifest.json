@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "ShopHub Automated Product Scraper",
+  "version": "1.0",
+  "description": "Automatically scrapes products from visited websites and saves them to the ShopHub dataset.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost:5000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}

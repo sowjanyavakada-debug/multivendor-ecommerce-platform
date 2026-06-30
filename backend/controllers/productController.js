@@ -1,6 +1,7 @@
 const db = require('../database/database');
 const path = require('path');
 const fs = require('fs');
+const { syncScrapedProducts } = require('../utils/gitSync');
 
 // 1. Get All Products (with Search, Filter, Sort, Pagination)
 const getProducts = async (req, res, next) => {
@@ -539,6 +540,92 @@ const getCategories = async (req, res, next) => {
   }
 };
 
+const createScrapedProduct = async (req, res, next) => {
+  try {
+    let items = [];
+    if (Array.isArray(req.body)) {
+      items = req.body;
+    } else if (req.body.products && Array.isArray(req.body.products)) {
+      items = req.body.products;
+    } else if (req.body && typeof req.body === 'object') {
+      items = [req.body];
+    }
+
+    if (items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No product data provided.'
+      });
+    }
+
+    // Load existing categories
+    const categoriesRows = await db.all('SELECT name FROM Categories');
+    const existingCategories = new Set(categoriesRows.map(c => c.name.toLowerCase()));
+
+    let insertedCount = 0;
+    let skippedCount = 0;
+
+    // Use vendor ID 1 as default vendor
+    const defaultVendorId = 1;
+
+    for (const item of items) {
+      const { name, price, image_url, description, product_link, category } = item;
+
+      if (!name) {
+        skippedCount++;
+        continue;
+      }
+
+      // Check for duplicate
+      const duplicateSql = 'SELECT id FROM Products WHERE name = ? AND (product_link = ? OR (product_link IS NULL AND image_url = ?))';
+      const duplicate = await db.get(duplicateSql, [name, product_link || null, image_url || null]);
+      if (duplicate) {
+        skippedCount++;
+        continue;
+      }
+
+      // Handle category check & insertion
+      let categoryName = category || 'General';
+      if (!existingCategories.has(categoryName.toLowerCase())) {
+        try {
+          await db.run('INSERT INTO Categories (name, description) VALUES (?, ?)', [categoryName, `${categoryName} scraped category.`]);
+          existingCategories.add(categoryName.toLowerCase());
+        } catch (catErr) {
+          categoryName = 'General';
+        }
+      }
+
+      const parsedPrice = typeof price === 'number' ? price : parseFloat(price);
+      const priceVal = isNaN(parsedPrice) || parsedPrice < 0 ? 0.00 : parsedPrice;
+      const descVal = description || `Scraped product from ${product_link || 'external site'}.`;
+
+      await db.run(
+        `INSERT INTO Products (name, description, price, stock, image_url, category, vendor_id, is_featured, product_link, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Approved')`,
+        [name, descVal, priceVal, 50, image_url || null, categoryName, defaultVendorId, 0, product_link || null]
+      );
+      insertedCount++;
+    }
+
+    if (insertedCount > 0) {
+      syncScrapedProducts(insertedCount).catch(err => {
+        console.error('[Git Sync Error]:', err);
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Scraper ingestion complete. Ingested ${insertedCount} products, skipped ${skippedCount} duplicates.`,
+      data: {
+        inserted: insertedCount,
+        skipped: skippedCount
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -554,4 +641,5 @@ module.exports = {
   getRecentlyViewed,
   getVendorPublicStore,
   getCategories,
+  createScrapedProduct,
 };

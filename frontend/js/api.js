@@ -1,5 +1,63 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
+// Robust helper to resolve product image URLs
+window.getProductImageUrl = (imageUrl, productName = '') => {
+  // If no imageUrl, or it contains example.com / broken domains, we try to resolve a working image
+  let isInvalid = !imageUrl || imageUrl.includes('example.com') || imageUrl.includes('placeholder') || imageUrl.includes('broken');
+  
+  if (isInvalid) {
+    const textToMatch = ((productName || '') + ' ' + (imageUrl || '')).toLowerCase();
+    
+    if (textToMatch.includes('laptop') || textToMatch.includes('dell') || textToMatch.includes('xps') || textToMatch.includes('computer')) {
+      return 'https://images.unsplash.com/photo-1496181130204-7552cc1524e2?w=600';
+    }
+    if (textToMatch.includes('keyboard')) {
+      return 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600';
+    }
+    if (textToMatch.includes('mug') || textToMatch.includes('cup') || textToMatch.includes('coffee')) {
+      return 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600';
+    }
+    if (textToMatch.includes('earbuds') || textToMatch.includes('headphone') || textToMatch.includes('audio')) {
+      return 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600';
+    }
+    if (textToMatch.includes('speaker')) {
+      return 'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=600';
+    }
+    if (textToMatch.includes('watch') || textToMatch.includes('smartwatch')) {
+      return 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600';
+    }
+    if (textToMatch.includes('phone') || textToMatch.includes('iphone')) {
+      return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600';
+    }
+    if (textToMatch.includes('water bottle') || textToMatch.includes('bottle')) {
+      return 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=600';
+    }
+    if (textToMatch.includes('backpack') || textToMatch.includes('bag')) {
+      return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600';
+    }
+    if (textToMatch.includes('wallet')) {
+      return 'https://images.unsplash.com/photo-1627124765111-f4398c899041?w=600';
+    }
+    if (textToMatch.includes('sunglasses') || textToMatch.includes('glasses')) {
+      return 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600';
+    }
+    // Default fallback
+    return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+  }
+
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image')) {
+    return imageUrl;
+  }
+  // Check if it already has /uploads prefix or not
+  if (imageUrl.startsWith('uploads/')) {
+    return `http://localhost:5000/${imageUrl}`;
+  }
+  if (imageUrl.startsWith('/uploads/')) {
+    return `http://localhost:5000${imageUrl}`;
+  }
+  return `http://localhost:5000/uploads/${imageUrl}`;
+};
+
 // Premium Toast Alert system
 const showToast = (message, isError = false) => {
   let toastContainer = document.getElementById('premium-toast-container');
@@ -324,17 +382,18 @@ window.renderSharedLayout = () => {
             </ul>
           </div>
           <div class="col-6 col-md-3">
-            <h5>Security Details</h5>
+            <h5>Security & Privacy</h5>
             <ul class="list-unstyled mt-3 text-white-50">
-              <li>🔒 JWT Authentication</li>
-              <li>🔑 Bcrypt Password Hash</li>
-              <li>🛡️ Input Sanitization</li>
+              <li>🔒 Secure Authentication</li>
+              <li>🔑 Encrypted Password Storage</li>
+              <li>🛡️ Secure Transactions</li>
+              <li>👁️ Privacy Protected</li>
             </ul>
           </div>
         </div>
         <hr class="my-4" style="border-color: rgba(255,255,255,0.08);">
         <div class="text-center text-white-50">
-          <p class="mb-0">© 2026 ShopHub. All rights reserved. Powered by Node.js, Express & MySQL.</p>
+          <p class="mb-0">© 2026 ShopHub. All rights reserved. Premium Multi-Vendor Marketplace.</p>
         </div>
       </div>
     `;

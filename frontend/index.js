@@ -83,11 +83,11 @@ function renderProducts(containerId, products) {
   }
 
   container.innerHTML = products.map(prod => {
-    const imageUrl = prod.image_url ? `http://localhost:5000/${prod.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    const imageUrl = window.getProductImageUrl(prod.image_url, prod.name);
     return `
       <div class="col-6 col-md-3">
         <div class="card premium-card h-100">
-          <img src="${imageUrl}" class="card-img-top" alt="${prod.name}">
+          <img src="${imageUrl}" class="card-img-top" alt="${prod.name}" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
           <div class="card-body d-flex flex-column text-center">
             <h5 class="fw-bold mb-1 text-truncate" title="${prod.name}">${prod.name}</h5>
             <span class="badge bg-secondary-subtle text-secondary mb-2 align-self-center">${prod.category}</span>
@@ -115,7 +115,12 @@ async function openProductModal(productId) {
     document.getElementById('modalPrice').innerText = `₹${prod.price.toFixed(2)}`;
     document.getElementById('modalDescription').innerText = prod.description || 'No description available.';
     document.getElementById('modalCategory').innerText = prod.category;
-    document.getElementById('modalImage').src = prod.image_url ? `http://localhost:5000/${prod.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    const modalImg = document.getElementById('modalImage');
+    modalImg.src = window.getProductImageUrl(prod.image_url, prod.name);
+    modalImg.onerror = function() {
+      this.src = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+      this.onerror = null;
+    };
     
     const storeLink = document.getElementById('modalVendorStoreLink');
     if (storeLink) {

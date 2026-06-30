@@ -64,13 +64,13 @@ function renderCart() {
   }
 
   container.innerHTML = cartItemsList.map(item => {
-    const imageUrl = item.image_url ? `http://localhost:5000/${item.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    const imageUrl = window.getProductImageUrl(item.image_url, item.name);
     const total = item.price * item.quantity;
     return `
       <tr>
         <td>
           <div class="d-flex align-items-center gap-3">
-            <img src="${imageUrl}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+            <img src="${imageUrl}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
             <span class="fw-bold">${item.name}</span>
           </div>
         </td>
@@ -252,13 +252,13 @@ function renderWishlist(items) {
   }
 
   container.innerHTML = items.map(item => {
-    const imageUrl = item.image_url ? `http://localhost:5000/${item.image_url}` : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    const imageUrl = window.getProductImageUrl(item.image_url, item.name);
     const stockBadge = item.stock > 0 ? `<span class="badge bg-success">In Stock (${item.stock})</span>` : '<span class="badge bg-danger">Out of Stock</span>';
     return `
       <tr>
         <td>
           <div class="d-flex align-items-center gap-3">
-            <img src="${imageUrl}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+            <img src="${imageUrl}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'; this.onerror=null;">
             <span class="fw-bold">${item.name}</span>
           </div>
         </td>

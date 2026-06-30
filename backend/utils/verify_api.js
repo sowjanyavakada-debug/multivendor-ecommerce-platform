@@ -281,10 +281,47 @@ const runTests = async () => {
     const adminStats = await request('GET', '/api/admin/stats', {
       'Authorization': `Bearer ${adminToken}`
     });
-    if (adminStats.status !== 200 || adminStats.body.data.totalProducts !== 1) {
+    if (adminStats.status !== 200 || adminStats.body.data.totalProducts !== 6) {
       throw new Error(`Admin Dashboard Stats failed: ${JSON.stringify(adminStats)}`);
     }
     console.log('  \x1b[32m✔ Passed (System Stats loaded correctly)\x1b[0m\n');
+
+    // 19. Scraped Product Ingestion (Public POST /api/products/scraped)
+    console.log('Testing: POST /api/products/scraped (Public Scraper Ingestion)');
+    const scrapePayload = {
+      products: [
+        {
+          name: 'Scraped Keyboard',
+          price: 49.99,
+          image_url: 'http://example.com/keyboard.jpg',
+          product_link: 'http://example.com/keyboard',
+          description: 'A great mechanical keyboard.',
+          category: 'Electronics'
+        },
+        {
+          name: 'Scraped Mug',
+          price: 12.99,
+          image_url: 'http://example.com/mug.jpg',
+          product_link: 'http://example.com/mug',
+          description: 'Ceramic coffee mug.',
+          category: 'Kitchenware'
+        }
+      ]
+    };
+
+    const scrapePost = await request('POST', '/api/products/scraped', {}, scrapePayload);
+    if (scrapePost.status !== 201 || scrapePost.body.data.inserted !== 2) {
+      throw new Error(`Scraper Ingestion Failed: ${JSON.stringify(scrapePost)}`);
+    }
+    console.log('  \x1b[32m✔ Passed (Ingested: 2)\x1b[0m\n');
+
+    // Try posting again to verify duplicate detection skips them
+    console.log('Testing: POST /api/products/scraped (Duplicate Skip Validation)');
+    const scrapePostDuplicate = await request('POST', '/api/products/scraped', {}, scrapePayload);
+    if (scrapePostDuplicate.status !== 201 || scrapePostDuplicate.body.data.inserted !== 0 || scrapePostDuplicate.body.data.skipped !== 2) {
+      throw new Error(`Duplicate Skip Validation Failed: ${JSON.stringify(scrapePostDuplicate)}`);
+    }
+    console.log('  \x1b[32m✔ Passed (Skipped duplicates: 2)\x1b[0m\n');
 
     console.log('====================================================');
     console.log('ALL API TESTS PASSED SUCCESSFULLY! 🚀');
@@ -295,6 +332,8 @@ const runTests = async () => {
     console.error(error);
     process.exitCode = 1;
   } finally {
+    console.log('Waiting 5s for any background sync tasks to finish...');
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     console.log('Closing server...');
     server.close(() => {
       console.log('Server shut down.');

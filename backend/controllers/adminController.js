@@ -99,6 +99,71 @@ const approveVendor = async (req, res, next) => {
 
     await db.run("UPDATE Vendors SET status = 'approved' WHERE id = ?", [id]);
 
+    // Check if the vendor has 0 products. If so, assign 5 realistic sample products.
+    const productsCount = await db.get(
+      'SELECT COUNT(*) as count FROM Products WHERE vendor_id = ?',
+      [id]
+    );
+
+    if (productsCount && productsCount.count === 0) {
+      const sampleProducts = [
+        {
+          name: 'Premium Wireless Earbuds',
+          description: 'High-fidelity sound with active noise cancellation and 30-hour battery life.',
+          price: 2499.00,
+          stock: 50,
+          image_url: 'uploads/earbuds.jpg',
+          category: 'Electronics',
+          is_featured: 1
+        },
+        {
+          name: 'Smart Bluetooth Watch',
+          description: 'Track your workouts, heart rate, sleep quality, and stay connected with smart notifications.',
+          price: 3999.00,
+          stock: 35,
+          image_url: 'uploads/smartwatch.jpg',
+          category: 'Accessories',
+          is_featured: 1
+        },
+        {
+          name: 'Ergonomic Office Mouse',
+          description: 'Comfortable wireless mouse with adjustable DPI and silent clicks for improved productivity.',
+          price: 1199.00,
+          stock: 40,
+          image_url: 'uploads/headphones.jpg',
+          category: 'Electronics',
+          is_featured: 0
+        },
+        {
+          name: 'Stainless Steel Water Bottle',
+          description: 'Double-walled vacuum insulated bottle to keep your drinks cold for 24h or hot for 12h.',
+          price: 899.00,
+          stock: 75,
+          image_url: 'uploads/waterbottle.jpg',
+          category: 'Accessories',
+          is_featured: 0
+        },
+        {
+          name: 'Retro Canvas Backpack',
+          description: 'Durable cotton canvas backpack with leather accents, spacious compartments, and laptop sleeve.',
+          price: 1899.00,
+          stock: 20,
+          image_url: 'uploads/canvasbag.jpg',
+          category: 'Fashion',
+          is_featured: 1
+        }
+      ];
+
+      for (const p of sampleProducts) {
+        await db.run(
+          `INSERT INTO Products (name, description, price, stock, image_url, category, vendor_id, is_featured)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [p.name, p.description, p.price, p.stock, p.image_url, p.category, id, p.is_featured]
+        );
+      }
+      console.log(`Assigned 5 sample products to newly approved vendor (ID: ${id})`);
+    }
+
     return res.status(200).json({
       success: true,
       message: `Vendor '${vendor.vendor_name}' approved successfully.`,
