@@ -1,4 +1,18 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const getBackendUrl = () => {
+  const savedUrl = localStorage.getItem('API_URL');
+  if (savedUrl) return savedUrl;
+
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    return 'http://localhost:5000';
+  }
+  
+  // Deployed Render URL (user will update this when linking their Render backend service)
+  return 'https://shophub-backend.onrender.com';
+};
+
+const BACKEND_URL = getBackendUrl();
+const API_BASE_URL = `${BACKEND_URL}/api`;
 
 // Robust helper to resolve product image URLs
 window.getProductImageUrl = (imageUrl, productName = '') => {
@@ -50,12 +64,12 @@ window.getProductImageUrl = (imageUrl, productName = '') => {
   }
   // Check if it already has /uploads prefix or not
   if (imageUrl.startsWith('uploads/')) {
-    return `http://localhost:5000/${imageUrl}`;
+    return `${BACKEND_URL}/${imageUrl}`;
   }
   if (imageUrl.startsWith('/uploads/')) {
-    return `http://localhost:5000${imageUrl}`;
+    return `${BACKEND_URL}${imageUrl}`;
   }
-  return `http://localhost:5000/uploads/${imageUrl}`;
+  return `${BACKEND_URL}/uploads/${imageUrl}`;
 };
 
 // Premium Toast Alert system

@@ -10,11 +10,15 @@ if (process.env.NODE_ENV === 'test') {
 
 // Bootstrap function to create database if not exists
 const bootstrapDb = async () => {
+  if (process.env.DATABASE_URL) {
+    return; // Bypass database bootstrapping when using a cloud connection URI
+  }
   try {
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || 'sowjanya'
+      password: process.env.DB_PASSWORD || 'sowjanya',
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306
     });
 
     if (dbName === 'test_ecommerce') {
@@ -34,23 +38,50 @@ const bootstrapDb = async () => {
 let pool;
 const getPool = async () => {
   if (!pool) {
-    await bootstrapDb();
-    pool = mysql.createPool({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || 'sowjanya',
-      database: dbName,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      typeCast: function (field, next) {
-        if (field.type === 'DECIMAL' || field.type === 'NEWDECIMAL') {
-          const value = field.string();
-          return value === null ? null : parseFloat(value);
-        }
-        return next();
+    if (process.env.DATABASE_URL) {
+      try {
+        const dbUrl = new URL(process.env.DATABASE_URL);
+        pool = mysql.createPool({
+          host: dbUrl.hostname,
+          user: dbUrl.username,
+          password: decodeURIComponent(dbUrl.password),
+          port: dbUrl.port ? parseInt(dbUrl.port) : 3306,
+          database: dbUrl.pathname.substring(1),
+          waitForConnections: true,
+          connectionLimit: 10,
+          queueLimit: 0,
+          typeCast: function (field, next) {
+            if (field.type === 'DECIMAL' || field.type === 'NEWDECIMAL') {
+              const value = field.string();
+              return value === null ? null : parseFloat(value);
+            }
+            return next();
+          }
+        });
+      } catch (uriErr) {
+        console.error('Failed to parse DATABASE_URL, attempting direct string pool connection:', uriErr.message);
+        pool = mysql.createPool(process.env.DATABASE_URL);
       }
-    });
+    } else {
+      await bootstrapDb();
+      pool = mysql.createPool({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || 'sowjanya',
+        port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
+        database: dbName,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        typeCast: function (field, next) {
+          if (field.type === 'DECIMAL' || field.type === 'NEWDECIMAL') {
+            const value = field.string();
+            return value === null ? null : parseFloat(value);
+          }
+          return next();
+        }
+      });
+    }
   }
   return pool;
 };
