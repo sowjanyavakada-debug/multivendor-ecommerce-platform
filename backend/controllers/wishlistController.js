@@ -41,7 +41,7 @@ const addToWishlist = async (req, res, next) => {
 
     // Add to wishlist (IGNORE if duplicate)
     await db.run(
-      'INSERT OR IGNORE INTO Wishlist (user_id, product_id) VALUES (?, ?)',
+      'INSERT IGNORE INTO Wishlist (user_id, product_id) VALUES (?, ?)',
       [userId, product_id]
     );
 
